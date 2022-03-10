@@ -348,10 +348,13 @@ sub processNode {
   my $conversion;
   # XMath will be removed (LATER!), but mark its ids as reusable.
   $doc->preremoveNodes($xmath);
+  my $is_kludge = ($math->getAttribute('class') || '') eq 'kludge_parse';
   if ($$self{parallel}) {
     my $primary     = $self->convertNode($doc, $xmath);
     my @secondaries = ();
     foreach my $proc (@{ $$self{secondary_processors} }) {
+      # Exception: Do not generate Content MathML for kludge parses
+      next if $is_kludge && (ref $proc eq 'LaTeXML::Post::MathML::Content');
       local $LaTeXML::Post::MATHPROCESSOR = $proc;
       my $secondary = $proc->convertNode($doc, $xmath);
       # IF it is (first) image, copy image attributes to ltx:Math ???
@@ -547,9 +550,9 @@ sub associateNode {
         $node->setAttribute('xml:id' => $id); }
       push(@{ $$self{convertedIDs}{$sourceid} }, $id) unless $noxref; } }
   $self->associateNodeHook($node, $sourcenode, $noxref);
-  if ($isarray) {                                                # Array represented
+  if ($isarray) {    # Array represented
     map { $self->associateNode($_, $currentnode, $noxref) } @$node[2 .. $#$node]; }
-  else {                                                         # LibXML node
+  else {             # LibXML node
     map { $self->associateNode($_, $currentnode, $noxref) } element_nodes($node); }
   return; }
 
@@ -607,7 +610,7 @@ sub addCrossrefs {
                 || !$$others_map{$xpid})) { }
             if ($xpid) {
               $other_ids = $$others_map{$xpid}; } } } } }
-    if ($other_ids) {                                         # Hopefully, we've got the targets, now
+    if ($other_ids) {    # Hopefully, we've got the targets, now
       my $xref_id = $$other_ids[0];
       if (scalar(@$other_ids) > 1) {    # Find 1st in document order! (order is cached)
         ($xref_id) = sort { $$xrefids{$a} <=> $$xrefids{$b} } @$other_ids; }

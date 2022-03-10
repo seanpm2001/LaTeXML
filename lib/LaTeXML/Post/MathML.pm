@@ -126,7 +126,7 @@ sub combineParallel {
     # anything else ignore?
   }
   return { processor => $self, mimetype => $$primary{mimetype},
-    xml => ['m:semantics', {}, $$primary{xml}, @alt] }; }
+    xml => (@alt ? ['m:semantics', {}, $$primary{xml}, @alt] : $$primary{xml}) }; }
 
 # $self->convertNode($doc,$node);
 # will be handled by specific Presentation or Content MathML converters; See at END.
@@ -164,7 +164,7 @@ sub realize {
 # find the underlying role.
 my %EMBELLISHING_ROLE = (    # CONSTANT
   SUPERSCRIPTOP => 1, SUBSCRIPTOP => 1,
-  OVERACCENT => 1, UNDERACCENT => 1, MODIFIER => 1, MODIFIEROP => 1);
+  OVERACCENT    => 1, UNDERACCENT => 1, MODIFIER => 1, MODIFIEROP => 1);
 
 sub getOperatorRole {
   my ($node) = @_;
@@ -400,14 +400,14 @@ sub pmml {
     while (($$inner[0] eq 'm:mrow') && $$inner[2] && ref $$inner[2]) {
       $inner = $$inner[2]; }
     if (!$r && $inner && ($$inner[0] eq 'm:mo')) {
-      my $ls = $l && max(0, 1.6 + $l);                          # must be \ge 0
-      $$inner[1]{lspace} = $ls . 'pt'; }                        # Found inner op: use simple lspace
-    else {                                                      # Else fall back to wrap with m:mpadded
+      my $ls = $l && max(0, 1.6 + $l);      # must be \ge 0
+      $$inner[1]{lspace} = $ls . 'pt'; }    # Found inner op: use simple lspace
+    else {                                  # Else fall back to wrap with m:mpadded
       my $w = ($l && $r ? $l + $r : ($l ? $l : $r));
       $result = ['m:mpadded', { ($l ? (lspace => $l . "pt") : ()),
           ($w ? (width => ($w =~ /^-/ ? $w : '+' . $w) . "pt") : ()) }, $result]; } }
 
-  if ($cl && ((ref $result) eq 'ARRAY')) {                      # Add classs, if any and different
+  if ($cl && ((ref $result) eq 'ARRAY')) {    # Add classs, if any and different
     my $ocl = $$result[1]{class};
     $$result[1]{class} = (!$ocl || ($ocl eq $cl) ? $cl : "$ocl $cl"); }
   # Associate the generated node with the source XMath node.
@@ -510,7 +510,7 @@ sub pmml_internal {
       foreach my $col (element_nodes($row)) {
         $nc++;
         $spanned[$nc - 1]-- if $spanned[$nc - 1];
-        next                if $spanned[$nc - 1];                   # Omit this mtd, if spanned by another!
+        next                if $spanned[$nc - 1];    # Omit this mtd, if spanned by another!
         my $a    = $col->getAttribute('align');
         my $b    = $col->getAttribute('border');
         my $bc   = ($b ? join(' ', map { 'ltx_border_' . $_ } split(/\s/, $b)) : $b);
@@ -522,7 +522,7 @@ sub pmml_internal {
         my $rs   = $col->getAttribute('rowspan');
         my @cell = map { pmml($_) } element_nodes($col);
 
-        if ($rs || $cs) {    # Note following cells to be omitted from MathML
+        if ($rs || $cs) {                            # Note following cells to be omitted from MathML
           for (my $i = 0 ; $i < ($cs || 1) ; $i++) {
             $spanned[$nc - 1 + $i] = ($rs || 1); } }
         push(@cols, ['m:mtd', { ($a ? (columnalign => $a) : ()),
